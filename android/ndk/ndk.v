@@ -445,13 +445,13 @@ pub fn meta_dir(version string) string {
 fn read_platforms_json(version string) ?map[string]json2.Any {
 	mut platforms_json_file := cache.get_string(@MOD + '.' + @FN + '${version}')
 	if platforms_json_file != '' {
-		platforms_json := json2.raw_decode(platforms_json_file) or { return none }
+		platforms_json := json2.decode[json2.Any](platforms_json_file) or { return none }
 		platforms := platforms_json.as_map()
 		return platforms
 	}
 	platforms_json_path := os.join_path(meta_dir(version), 'platforms.json')
 	platforms_json_file = os.read_file(platforms_json_path) or { return none }
-	platforms_json := json2.raw_decode(platforms_json_file) or { return none }
+	platforms_json := json2.decode[json2.Any](platforms_json_file) or { return none }
 	platforms := platforms_json.as_map()
 	cache.set_string(@MOD + '.' + @FN + '${version}', platforms_json_file)
 	return platforms
