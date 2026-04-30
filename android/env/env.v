@@ -549,6 +549,14 @@ pub fn install_components(arguments []string, verbosity int) ! {
 	}
 }
 
+fn run_install_cmd(cmd []string) os.Result {
+	$if windows {
+		return util.run_raw(cmd)
+	} $else {
+		return util.run(cmd)
+	}
+}
+
 fn install_opt(opt InstallOptions) !bool {
 	loose := opt.dep == .bundletool || opt.dep == .aapt2
 
@@ -580,21 +588,18 @@ fn install_opt(opt InstallOptions) !bool {
 
 	opt.verbose(1, 'installing ${opt.dep}: "${item}"...')
 
-	install_cmd := $if windows {
-		[
-			'cmd /c',
-			'""' + sdkmanager() + '"',
-			'--sdk_root="${sdk.root()}"',
-			'"${item}""',
-		]
+	mut install_cmd := []string{}
+	$if windows {
+		install_cmd << 'cmd /c'
+		install_cmd << '""' + sdkmanager() + '"'
+		install_cmd << '--sdk_root="${sdk.root()}"'
+		install_cmd << '"${item}""'
 	} $else {
-		[
-			'yes',
-			'|',
-			sdkmanager(),
-			'--sdk_root="${sdk.root()}"',
-			'"${item}"',
-		]
+		install_cmd << 'yes'
+		install_cmd << '|'
+		install_cmd << sdkmanager()
+		install_cmd << '--sdk_root="${sdk.root()}"'
+		install_cmd << '"${item}"'
 	}
 
 	match opt.dep {
@@ -606,11 +611,7 @@ fn install_opt(opt InstallOptions) !bool {
 		}
 		.cmdline_tools, .platform_tools, .emulator, .system_images {
 			util.verbosity_print_cmd(install_cmd, opt.verbosity)
-			cmd_res := $if windows {
-				util.run_raw(install_cmd)
-			} $else {
-				util.run(install_cmd)
-			}
+			cmd_res := run_install_cmd(install_cmd)
 			if cmd_res.exit_code != 0 {
 				return error(cmd_res.output)
 			}
@@ -629,11 +630,7 @@ fn install_opt(opt InstallOptions) !bool {
 			opt.verbose(1, 'Installing NDK (Side-by-side) "${item}"...')
 
 			util.verbosity_print_cmd(install_cmd, opt.verbosity)
-			cmd_res := $if windows {
-				util.run_raw(install_cmd)
-			} $else {
-				util.run(install_cmd)
-			}
+			cmd_res := run_install_cmd(install_cmd)
 			if cmd_res.exit_code != 0 {
 				return error(cmd_res.output)
 			}
@@ -650,11 +647,7 @@ fn install_opt(opt InstallOptions) !bool {
 				}
 			}
 			util.verbosity_print_cmd(install_cmd, opt.verbosity)
-			cmd_res := $if windows {
-				util.run_raw(install_cmd)
-			} $else {
-				util.run(install_cmd)
-			}
+			cmd_res := run_install_cmd(install_cmd)
 			if cmd_res.exit_code != 0 {
 				return error(cmd_res.output)
 			}
@@ -667,17 +660,14 @@ fn install_opt(opt InstallOptions) !bool {
 				return true
 			}
 			util.verbosity_print_cmd(install_cmd, opt.verbosity)
-			cmd_res := $if windows {
-				util.run_raw(install_cmd)
-			} $else {
-				util.run(install_cmd)
-			}
+			cmd_res := run_install_cmd(install_cmd)
 			if cmd_res.exit_code != 0 {
 				return error(cmd_res.output)
 			}
 			return true
 		}
 	}
+
 	return error(@MOD + '.' + @FN + ' ' + 'unknown install type ${opt.dep}')
 }
 
@@ -870,12 +860,10 @@ pub fn sdkmanager() string {
 	if !os.is_executable(sdkmanager) {
 		sdkmanager = os.join_path(util.cache_dir(), 'sdkmanager')
 		if !os.is_executable(sdkmanager) {
-			sdkmanager = os.join_path(sdk.cache_dir(), 'cmdline-tools', '3.0', 'bin',
-				'sdkmanager')
+			sdkmanager = os.join_path(sdk.cache_dir(), 'cmdline-tools', '3.0', 'bin', 'sdkmanager')
 		}
 		if !os.is_executable(sdkmanager) {
-			sdkmanager = os.join_path(sdk.cache_dir(), 'cmdline-tools', '2.1', 'bin',
-				'sdkmanager')
+			sdkmanager = os.join_path(sdk.cache_dir(), 'cmdline-tools', '2.1', 'bin', 'sdkmanager')
 		}
 		if !os.is_executable(sdkmanager) {
 			sdkmanager = os.join_path(sdk.cache_dir(), 'cmdline-tools', 'tools', 'bin',
@@ -1032,8 +1020,7 @@ pub fn avdmanager() string {
 	// Try detecting it in the SDK
 	if sdk.found() {
 		if !os.is_executable(avdmanager_exe) {
-			avdmanager_exe = os.join_path(sdk.root(), 'cmdline-tools', 'tools', 'bin',
-				'avdmanager')
+			avdmanager_exe = os.join_path(sdk.root(), 'cmdline-tools', 'tools', 'bin', 'avdmanager')
 		}
 		if !os.is_executable(avdmanager_exe) {
 			avdmanager_exe = os.join_path(sdk.tools_root(), 'bin', 'avdmanager')
@@ -1052,8 +1039,8 @@ pub fn avdmanager() string {
 				return util.is_version(a)
 			})
 			for version_dir in version_dirs {
-				avdmanager_exe = os.join_path(sdk.root(), 'cmdline-tools', version_dir,
-					'bin', 'avdmanager')
+				avdmanager_exe = os.join_path(sdk.root(), 'cmdline-tools', version_dir, 'bin',
+					'avdmanager')
 				if os.is_executable(avdmanager_exe) {
 					break
 				}
@@ -1101,7 +1088,8 @@ pub fn emulator() string {
 	// Try detecting it in the SDK
 	if sdk.found() {
 		if !os.is_executable(emulator_exe) {
-			emulator_exe = os.join_path(sdk.root(), 'cmdline-tools', 'tools', 'bin', 'emulator${dot_exe}')
+			emulator_exe = os.join_path(sdk.root(), 'cmdline-tools', 'tools', 'bin',
+				'emulator${dot_exe}')
 		}
 		if !os.is_executable(emulator_exe) {
 			emulator_exe = os.join_path(sdk.tools_root(), 'bin', 'emulator${dot_exe}')
@@ -1120,8 +1108,8 @@ pub fn emulator() string {
 				return util.is_version(a)
 			})
 			for version_dir in version_dirs {
-				emulator_exe = os.join_path(sdk.root(), 'cmdline-tools', version_dir,
-					'bin', 'emulator${dot_exe}')
+				emulator_exe = os.join_path(sdk.root(), 'cmdline-tools', version_dir, 'bin',
+					'emulator${dot_exe}')
 				if os.is_executable(emulator_exe) {
 					break
 				}

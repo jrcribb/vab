@@ -29,28 +29,23 @@ fn possible_platform_sdk_paths() []string {
 	//
 	home := os.home_dir()
 	// Detect OS type at run-time - in case we're in some exotic environment
-	return match os.user_os() {
+	mut paths := []string{}
+	match os.user_os() {
 		'windows' {
-			[
-				os.join_path(os.getenv('LOCALAPPDATA'), 'Local\\Android\\sdk'),
-				os.join_path(home, 'AppData\\Local\\Android\\sdk'),
-			]
+			paths << os.join_path(os.getenv('LOCALAPPDATA'), 'Local\\Android\\sdk')
+			paths << os.join_path(home, 'AppData\\Local\\Android\\sdk')
 		}
 		'macos' {
-			[
-				os.join_path(home, 'Library/Android/sdk'),
-			]
+			paths << os.join_path(home, 'Library/Android/sdk')
 		}
 		'linux' {
-			[
-				os.join_path(home, 'Android/Sdk'),
-				'/usr/local/lib/android/sdk',
-			]
+			paths << os.join_path(home, 'Android/Sdk')
+			paths << '/usr/local/lib/android/sdk'
 		}
-		else {
-			[]string{}
-		}
+		else {}
 	}
+
+	return paths
 }
 
 // root will try to detect where the Android SDK is installed. Otherwise return an empty string
